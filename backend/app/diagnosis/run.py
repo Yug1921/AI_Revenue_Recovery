@@ -1,0 +1,56 @@
+"""
+Run Task B against an already-seeded batch.
+
+    python -m app.diagnosis.run --batch_id <batch_id from Task A>
+"""
+
+import argparse
+from collections import Counter
+
+from app.config import supabase
+from app.diagnosis.engine import diagnose_and_store
+
+
+def run(batch_id: str):
+    transactions = (
+        supabase.table("transactions").select("*").eq("batch_id", batch_id).execute().data
+    )
+    if not transactions:
+        print(f"No transactions found for batch_id {batch_id}. Did Task A run for this batch?")
+        return
+
+    already_diagnosed_ids = {
+        d["transaction_id"]
+        for d in supabase.table("diagnoses")
+        .select("transaction_id")
+        .in_("transaction_id", [t["id"] for t in transactions])
+        .execute()
+        .data
+    }
+
+    pending = [t for t in transactions if t["id"] not in already_diagnosed_ids]
+    print(f"{len(transactions)} transactions in batch, {len(pending)} pending diagnosis.")
+
+    method_counts = Counter()
+    cause_counts = Counter()
+
+    for i, txn in enumerate(pending, 1):
+        result = diagnose_and_store(txn)
+        method_counts[result["method"]] += 1
+        cause_counts[result["root_cause"]] += 1
+        print(f"  [{i}/{len(pending)}] {txn['type']:20s} -> {result['root_cause']:20s} "
+              f"(via {result['method']}, confidence {result['confidence']:.2f})")
+
+    print("\n--- Summary ---")
+    print(f"Handled by rules: {method_counts['rule']}")
+    print(f"Handled by LLM:   {method_counts['llm']}")
+    print("\nRoot cause breakdown:")
+    for cause, count in cause_counts.most_common():
+        print(f"  {cause}: {count}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run diagnosis engine on a seeded batch.")
+    parser.add_argument("--batch_id", required=True, help="batch_id printed by Task A")
+    args = parser.parse_args()
+    run(args.batch_id)
