@@ -37,19 +37,30 @@ function buildStages(trail: AuditTrail): TraceStage[] {
 export function CaseModal({
   transactionId, origin, onClose,
 }: { transactionId: string | null; origin: Origin; onClose: () => void }) {
-  const [trail, setTrail] = useState<AuditTrail | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [auditState, setAuditState] = useState<{
+    transactionId: string | null;
+    trail: AuditTrail | null;
+    error: string | null;
+  }>({ transactionId: null, trail: null, error: null });
 
   useEffect(() => {
     if (!transactionId) return;
-    setTrail(null);
-    setError(null);
     getCaseAuditTrail(transactionId)
-      .then(setTrail)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load case"));
+      .then((nextTrail) => {
+        setAuditState({ transactionId, trail: nextTrail, error: null });
+      })
+      .catch((e) => {
+        setAuditState({
+          transactionId,
+          trail: null,
+          error: e instanceof Error ? e.message : "Failed to load case",
+        });
+      });
   }, [transactionId]);
 
   const open = !!transactionId;
+  const trail = auditState.transactionId === transactionId ? auditState.trail : null;
+  const error = auditState.transactionId === transactionId ? auditState.error : null;
   const originStyle = origin ? { transformOrigin: `${origin.x}px ${origin.y}px` } : {};
 
   return (

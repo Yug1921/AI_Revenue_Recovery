@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   DollarSign,
@@ -37,7 +37,7 @@ export default function DashboardPage() {
   const [busy, setBusy] = useState(false);
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
   const [selectedOrigin, setSelectedOrigin] = useState<Origin>(null);
-  const [failCount, setFailCount] = useState(0);
+  const failCount = useRef(0);
   const [activeSection, setActiveSection] = useState<"overview" | "cases" | "activity">("overview");
 
   const refresh = useCallback(async (batchId: string) => {
@@ -49,17 +49,15 @@ export default function DashboardPage() {
       if (s === null) return null;
       setSummary(s);
       setCases(c);
-      setFailCount(0);
+      failCount.current = 0;
       setError(null);
 
       return s;
     } catch (e) {
-      setFailCount((prev) => {
-        const next = prev + 1;
-        if (next >= 2)
+      failCount.current += 1;
+      if (failCount.current >= 2) {
           setError(e instanceof Error ? e.message : "Failed to load batch");
-        return next;
-      });
+      }
       return null;
     }
   }, []);
