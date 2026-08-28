@@ -57,6 +57,8 @@ create table if not exists batch_runs (
   exceptions_count int
 );
 
+alter table batch_runs add column if not exists current_stage text;
+
 -- helpful indexes for the dashboard queries
 create index if not exists idx_transactions_batch on transactions(batch_id);
 create index if not exists idx_diagnoses_txn on diagnoses(transaction_id);

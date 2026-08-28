@@ -22,13 +22,29 @@ def run_full_pipeline(count: int = 60, batch_id: str | None = None) -> str:
                 "started_at": datetime.utcnow().isoformat(),
             }).execute())
 
+        with_retry(lambda: supabase.table("batch_runs").update({
+            "current_stage": "seeding",
+        }).eq("id", batch_id).execute())
         run_generation(count, batch_id=batch_id)
+
+        with_retry(lambda: supabase.table("batch_runs").update({
+            "current_stage": "diagnosing",
+        }).eq("id", batch_id).execute())
         run_diagnosis(batch_id)
+
+        with_retry(lambda: supabase.table("batch_runs").update({
+            "current_stage": "deciding",
+        }).eq("id", batch_id).execute())
         run_decisions(batch_id)
+
+        with_retry(lambda: supabase.table("batch_runs").update({
+            "current_stage": "executing",
+        }).eq("id", batch_id).execute())
         run_execution(batch_id)
 
         with_retry(lambda: supabase.table("batch_runs").update({
             "completed_at": datetime.utcnow().isoformat(),
+            "current_stage": "done",
         }).eq("id", batch_id).execute())
         return batch_id
     except Exception as error:
@@ -36,6 +52,7 @@ def run_full_pipeline(count: int = 60, batch_id: str | None = None) -> str:
         try:
             with_retry(lambda: supabase.table("batch_runs").update({
                 "completed_at": datetime.utcnow().isoformat(),
+                "current_stage": "failed",
             }).eq("id", batch_id).execute())
         except Exception as completion_error:
             print(f"Could not mark batch {batch_id} as completed: {completion_error}")
