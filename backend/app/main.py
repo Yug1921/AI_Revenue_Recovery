@@ -65,7 +65,10 @@ class AuditTrailResponse(BaseModel):
 app = FastAPI(title="Payment Recovery Agent")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://ai-revenue-recovery-eta-three.vercel.app/"],
+    allow_origins=[
+        "https://ai-revenue-recovery-eta-three.vercel.app",
+        "http://localhost:3000",
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
