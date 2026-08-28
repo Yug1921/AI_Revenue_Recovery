@@ -15,6 +15,7 @@ import { RecoveryTrendChart } from "@/components/dashboard/RecoveryTrendChart";
 import { RootCauseDonut } from "@/components/dashboard/RootCauseDonut";
 import { CasesTable } from "@/components/dashboard/CasesTable";
 import { CaseModal, Origin } from "@/components/dashboard/CaseModal";
+import { ActivityList } from "@/components/dashboard/ActivityList";
 import { runBatch, getBatchSummary, getBatchCases } from "@/lib/api";
 import { BatchSummary, Case } from "@/lib/types";
 
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
   const [selectedOrigin, setSelectedOrigin] = useState<Origin>(null);
   const [failCount, setFailCount] = useState(0);
+  const [activeSection, setActiveSection] = useState<"overview" | "cases" | "activity">("overview");
 
   const refresh = useCallback(async (batchId: string) => {
     try {
@@ -95,9 +97,28 @@ export default function DashboardPage() {
   return (
     <div className="w-full min-h-screen bg-background text-foreground flex flex-col relative">
       <MeshBackground />
-      <Header active="overview" onNavigate={() => {}} />
+      <Header
+        active={activeSection}
+        onNavigate={(id) => {
+          setActiveSection(id as "overview" | "cases" | "activity");
+          if (id === "cases") {
+            requestAnimationFrame(() => {
+              document.getElementById("cases-section")?.scrollIntoView({ behavior: "smooth" });
+            });
+          } else if (id === "overview") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+        }}
+      />
 
       <main className="w-full px-5 lg:px-10 xl:px-14 py-6 lg:py-8 flex-1 relative z-10">
+        <h1 className="text-2xl font-semibold text-foreground mb-6">
+          {activeSection === "cases"
+            ? "Batch Cases"
+            : activeSection === "activity"
+              ? "Batch History"
+              : "Batch Overview"}
+        </h1>
         {/* Batch selector row */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <input
@@ -136,7 +157,19 @@ export default function DashboardPage() {
         )}
 
         <AnimatePresence mode="wait">
-          {summary && (
+          {activeSection === "activity" ? (
+            <ActivityList
+              onSelectBatch={async (batchId) => {
+                setBusy(true);
+                await refresh(batchId);
+                setActiveBatchId(batchId);
+                setBatchIdInput(batchId);
+                setActiveSection("overview");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                setBusy(false);
+              }}
+            />
+          ) : summary && (
             <motion.div
               key={activeBatchId}
               initial={{ opacity: 0, y: 12 }}
@@ -187,18 +220,20 @@ export default function DashboardPage() {
                 <RootCauseDonut cases={cases} />
               </div>
 
-              <CasesTable
-                cases={cases}
-                onSelect={(id, origin) => {
-                  setSelectedCase(id);
-                  setSelectedOrigin(origin);
-                }}
-              />
+              <div id="cases-section">
+                <CasesTable
+                  cases={cases}
+                  onSelect={(id, origin) => {
+                    setSelectedCase(id);
+                    setSelectedOrigin(origin);
+                  }}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {!summary && !error && (
+        {!summary && !error && activeSection !== "activity" && (
           <div className="text-center text-muted-foreground text-sm py-24">
             Load an existing batch_id or run a new batch to get started.
           </div>

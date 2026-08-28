@@ -32,6 +32,17 @@ class BatchSummaryResponse(BaseModel):
     exceptions_count: Optional[int]
 
 
+class BatchListItem(BaseModel):
+    batch_id: str
+    started_at: str
+    status: str
+    total_transactions: int | None
+    total_at_risk: float | None
+    total_recovered: float | None
+    recovery_rate: float | None
+    exceptions_count: int | None
+
+
 class CaseResponse(BaseModel):
     transaction_id: str
     type: str
@@ -129,6 +140,28 @@ def get_batch_summary(batch_id: str) -> BatchSummaryResponse:
         exceptions_count=row.get("exceptions_count"),
     )
 
+
+@app.get("/api/batches", response_model=list[BatchListItem])
+def get_batches() -> list[BatchListItem]:
+    result = with_retry(lambda: supabase.table("batch_runs").select("*").order("started_at", desc=True).execute())
+    return [
+        BatchListItem(
+            batch_id=row["id"],
+            started_at=row["started_at"],
+            status="completed" if row.get("completed_at") else "running",
+            total_transactions=row.get("total_transactions"),
+            total_at_risk=_as_float(row.get("total_at_risk")),
+            total_recovered=_as_float(row.get("total_recovered")),
+            recovery_rate=_as_float(row.get("recovery_rate")),
+            exceptions_count=row.get("exceptions_count"),
+        )
+        for row in result.data
+    ]
+
+
+@app.get("/")
+def root():
+    return {"service": "recovery-agent-backend", "status": "ok"}
 
 @app.get("/api/batch/{batch_id}/cases", response_model=List[CaseResponse])
 def get_batch_cases(batch_id: str) -> List[CaseResponse]:

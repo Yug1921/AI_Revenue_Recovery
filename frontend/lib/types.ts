@@ -10,6 +10,17 @@ export type BatchSummary = {
   exceptions_count: number;
 };
 
+export type BatchListItem = {
+  batch_id: string;
+  started_at: string;
+  status: "running" | "completed";
+  total_transactions: number | null;
+  total_at_risk: number | null;
+  total_recovered: number | null;
+  recovery_rate: number | null;
+  exceptions_count: number | null;
+};
+
 export type Case = {
   transaction_id: string;
   type: string;

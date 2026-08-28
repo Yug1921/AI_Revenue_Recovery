@@ -1,4 +1,4 @@
-import { BatchSummary, Case, AuditTrail } from "./types";
+import { BatchListItem, BatchSummary, Case, AuditTrail } from "./types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -15,6 +15,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function runBatch(count = 60): Promise<{ batch_id: string; status: string }> {
   return request("/api/batch/run", { method: "POST", body: JSON.stringify({ count }) });
+}
+
+export function listBatches(): Promise<BatchListItem[]> {
+  return request("/api/batches");
 }
 
 export async function getBatchSummary(batchId: string): Promise<BatchSummary | null> {
