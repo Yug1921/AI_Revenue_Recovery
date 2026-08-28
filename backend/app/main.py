@@ -64,12 +64,11 @@ class AuditTrailResponse(BaseModel):
 app = FastAPI(title="Payment Recovery Agent")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://ai-revenue-recovery-eta-three.vercel.app/"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.exception_handler(httpx.ReadError)
 @app.exception_handler(httpx.ConnectError)
