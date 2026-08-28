@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 from faker import Faker
 
 from app.config import supabase
+from app.db_retry import with_retry
 
 fake = Faker("en_IN")
 
@@ -128,8 +129,8 @@ def build_transaction(batch_id: str) -> dict:
     }
 
 
-def run(count: int):
-    batch_id = str(uuid.uuid4())
+def run(count: int, batch_id: str | None = None) -> str:
+    batch_id = batch_id or str(uuid.uuid4())
     rows = [build_transaction(batch_id) for _ in range(count)]
 
     # Insert in chunks to stay well under any request size limits.
@@ -137,7 +138,7 @@ def run(count: int):
     inserted = 0
     for i in range(0, len(rows), chunk_size):
         chunk = rows[i : i + chunk_size]
-        result = supabase.table("transactions").insert(chunk).execute()
+        result = with_retry(lambda: supabase.table("transactions").insert(chunk).execute())
         inserted += len(result.data)
 
     print(f"Batch ID: {batch_id}")
@@ -147,6 +148,7 @@ def run(count: int):
         n = sum(1 for r in rows if r["type"] == t)
         print(f"  {t}: {n}")
     print("\nSave this batch_id — Tasks B/C/D will run against it.")
+    return batch_id
 
 
 if __name__ == "__main__":

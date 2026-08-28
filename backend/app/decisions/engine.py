@@ -7,6 +7,7 @@ Output shape is the contract Task D (execution) builds against:
 
 from app.config import supabase
 from app.decisions.rules import get_bounds
+from app.db_retry import with_retry
 
 
 def decide(diagnosis: dict) -> dict:
@@ -35,6 +36,6 @@ def decide_and_store(transaction_id: str, diagnosis: dict) -> dict:
         "bounds_applied": result["bounds_applied"],
         "reasoning": result["reasoning"],
     }
-    supabase.table("decisions").insert(row).execute()
+    with_retry(lambda: supabase.table("decisions").insert(row).execute())
 
     return result

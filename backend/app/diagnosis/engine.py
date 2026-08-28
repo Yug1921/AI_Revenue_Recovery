@@ -11,6 +11,7 @@ Task D (execution) build against — its output shape is the contract:
 from app.config import supabase
 from app.diagnosis import rules
 from app.diagnosis.llm import diagnose_with_llm
+from app.db_retry import with_retry
 
 RULE_CONFIDENCE_THRESHOLD = 0.8
 
@@ -37,6 +38,6 @@ def diagnose_and_store(transaction: dict) -> dict:
         "confidence": result["confidence"],
         "reasoning": result["reasoning"],
     }
-    supabase.table("diagnoses").insert(row).execute()
+    with_retry(lambda: supabase.table("diagnoses").insert(row).execute())
 
     return result
