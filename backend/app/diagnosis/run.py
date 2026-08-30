@@ -10,6 +10,7 @@ from collections import Counter
 from app.config import supabase
 from app.db_retry import with_retry
 from app.diagnosis.engine import diagnose_and_store
+from app.progress import _touch
 
 
 def run(batch_id: str):
@@ -39,6 +40,8 @@ def run(batch_id: str):
 
     for i, txn in enumerate(pending, 1):
         try:
+            if i % 10 == 0:
+                _touch(batch_id, "diagnosing")
             result = diagnose_and_store(txn)
             method_counts[result["method"]] += 1
             cause_counts[result["root_cause"]] += 1

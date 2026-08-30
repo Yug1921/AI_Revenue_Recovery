@@ -31,6 +31,7 @@ class BatchSummaryResponse(BaseModel):
     recovery_rate: Optional[float]
     exceptions_count: Optional[int]
     current_stage: Optional[str]
+    last_updated_at: Optional[str]
 
 
 class BatchListItem(BaseModel):
@@ -142,6 +143,7 @@ def get_batch_summary(batch_id: str) -> BatchSummaryResponse:
         recovery_rate=_as_float(row.get("recovery_rate")),
         exceptions_count=row.get("exceptions_count"),
         current_stage=row.get("current_stage"),
+        last_updated_at=row.get("last_updated_at"),
     )
 
 

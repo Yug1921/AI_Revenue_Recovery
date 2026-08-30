@@ -25,6 +25,7 @@ from collections import Counter
 from app.config import supabase
 from app.execution.engine import execute_actions
 from app.db_retry import with_retry
+from app.progress import _touch
 
 def run(batch_id: str):
     transactions = with_retry(lambda: (
@@ -61,6 +62,8 @@ def run(batch_id: str):
 
     for i, txn in enumerate(pending, 1):
         try:
+            if i % 10 == 0:
+                _touch(batch_id, "executing")
             diagnosis = diagnoses[txn["id"]]
             decision = decisions[txn["id"]]
             results = execute_actions(txn, diagnosis, decision)

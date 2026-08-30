@@ -10,6 +10,7 @@ from collections import Counter
 from app.config import supabase
 from app.db_retry import with_retry
 from app.decisions.engine import decide_and_store
+from app.progress import _touch
 
 
 def run(batch_id: str):
@@ -47,6 +48,8 @@ def run(batch_id: str):
     skipped = []
     for i, tid in enumerate(pending, 1):
         try:
+            if i % 10 == 0:
+                _touch(batch_id, "deciding")
             diagnosis = diag_by_txn[tid]
             result = decide_and_store(tid, diagnosis)
             action_counts[result["action_type"]] += 1

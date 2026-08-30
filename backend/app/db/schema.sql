@@ -58,6 +58,7 @@ create table if not exists batch_runs (
 );
 
 alter table batch_runs add column if not exists current_stage text;
+alter table batch_runs add column if not exists last_updated_at timestamptz;
 
 -- helpful indexes for the dashboard queries
 create index if not exists idx_transactions_batch on transactions(batch_id);
