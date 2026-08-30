@@ -17,6 +17,7 @@ import { CasesTable } from "@/components/dashboard/CasesTable";
 import { CaseModal, Origin } from "@/components/dashboard/CaseModal";
 import { ActivityList } from "@/components/dashboard/ActivityList";
 import { NudgesList } from "@/components/dashboard/NudgesList";
+import { BatchLoadingOverlay } from "@/components/dashboard/BatchLoadingOverlay";
 import { runBatch, getBatchSummary, getBatchCases } from "@/lib/api";
 import { BatchSummary, Case } from "@/lib/types";
 
@@ -70,6 +71,16 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [activeBatchId, summary?.status, refresh]);
 
+  useEffect(() => {
+    if (activeSection === "cases") {
+      requestAnimationFrame(() => {
+        document.getElementById("cases-section")?.scrollIntoView({ behavior: "smooth" });
+      });
+    } else if (activeSection === "overview") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [activeSection]);
+
   async function handleLoadBatch() {
     if (!batchIdInput.trim()) return;
     setBusy(true);
@@ -98,18 +109,7 @@ export default function DashboardPage() {
       <MeshBackground />
       <Header
         active={activeSection}
-        onNavigate={(id) => {
-          setActiveSection(id as "overview" | "cases" | "activity" | "nudges");
-          if (id === "cases") {
-            requestAnimationFrame(() => {
-              document.getElementById("cases-section")?.scrollIntoView({ behavior: "smooth" });
-            });
-          } else if (id === "overview") {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          } else if (id === "activity") {
-            // keep the same non-scroll behavior already used for the activity section
-          }
-        }}
+        onNavigate={(id) => setActiveSection(id as typeof activeSection)}
       />
 
       <main className="w-full px-5 lg:px-10 xl:px-14 py-6 lg:py-8 flex-1 relative z-10">
@@ -228,7 +228,13 @@ export default function DashboardPage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                <RecoveryTrendChart cases={cases} />
+                <RecoveryTrendChart
+                  cases={cases}
+                  onPointClick={(transactionId) => {
+                    setSelectedCase(transactionId);
+                    setSelectedOrigin({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+                  }}
+                />
                 <RootCauseDonut cases={cases} />
               </div>
 
@@ -255,6 +261,10 @@ export default function DashboardPage() {
         transactionId={selectedCase}
         origin={selectedOrigin}
         onClose={() => setSelectedCase(null)}
+      />
+      <BatchLoadingOverlay
+        visible={summary?.status === "running"}
+        stage={summary?.current_stage ?? null}
       />
     </div>
   );

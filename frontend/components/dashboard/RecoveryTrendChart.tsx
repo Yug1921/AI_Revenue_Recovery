@@ -4,21 +4,38 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { SectionPanel, SectionHeader, ChartTooltipContent, C } from "./primitives";
 import { Case } from "@/lib/types";
 
-export function RecoveryTrendChart({ cases }: { cases: Case[] }) {
+export function RecoveryTrendChart({
+  cases,
+  onPointClick,
+}: {
+  cases: Case[];
+  onPointClick: (transactionId: string) => void;
+}) {
   // Build a cumulative recovered-amount series ordered by when each case last updated.
-    const sorted = [...cases].sort((a, b) => a.updated_at.localeCompare(b.updated_at));
-  const data = sorted.reduce<{ index: number; recovered: number }[]>((acc, c) => {
+  const sorted = [...cases].sort((a, b) => a.updated_at.localeCompare(b.updated_at));
+  const data = sorted.reduce<{ index: number; recovered: number; transaction_id: string }[]>((acc, c) => {
     const prevTotal = acc.length > 0 ? acc[acc.length - 1].recovered : 0;
-    acc.push({ index: acc.length + 1, recovered: Math.round(prevTotal + c.amount_recovered) });
+    acc.push({
+      index: acc.length + 1,
+      recovered: Math.round(prevTotal + c.amount_recovered),
+      transaction_id: c.transaction_id,
+    });
     return acc;
   }, []);
 
   return (
     <SectionPanel className="lg:col-span-2 relative overflow-hidden">
       <SectionHeader title="Recovery Trend" subtitle="Cumulative amount recovered across the batch" />
-      <div className="h-56 lg:h-72">
+      <div className="h-56 lg:h-72 cursor-pointer">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+          <AreaChart
+            data={data}
+            margin={{ top: 5, right: 5, bottom: 0, left: 0 }}
+            onClick={(state: any) => {
+              const point = state?.activePayload?.[0]?.payload;
+              if (point?.transaction_id) onPointClick(point.transaction_id);
+            }}
+          >
             <defs>
               <linearGradient id="recoveryFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={C.blue} stopOpacity={0.25} />

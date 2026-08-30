@@ -3,6 +3,7 @@ export type BatchStatus = "running" | "completed";
 export type BatchSummary = {
   batch_id: string;
   status: BatchStatus;
+  current_stage: string | null;
   total_transactions: number;
   total_at_risk: number;
   total_recovered: number;

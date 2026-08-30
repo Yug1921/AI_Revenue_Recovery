@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, Copy } from "lucide-react";
 import { SectionHeader, SectionPanel } from "./primitives";
 import { listBatches } from "@/lib/api";
 import { BatchListItem } from "@/lib/types";
@@ -28,6 +29,7 @@ export function ActivityList({ onSelectBatch }: { onSelectBatch: (batchId: strin
   const [batches, setBatches] = useState<BatchListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -78,8 +80,21 @@ export function ActivityList({ onSelectBatch }: { onSelectBatch: (batchId: strin
                 <span className="block text-sm font-medium text-foreground truncate">
                   {formatTime(batch.started_at)}
                 </span>
-                <span className="block text-[11px] text-muted-foreground font-mono truncate mt-1">
-                  {batch.batch_id}
+                <span className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono truncate mt-1">
+                  <span className="truncate">{batch.batch_id}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(batch.batch_id);
+                      setCopiedId(batch.batch_id);
+                      setTimeout(() => setCopiedId((id) => (id === batch.batch_id ? null : id)), 1500);
+                    }}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Copy batch ID"
+                  >
+                    {copiedId === batch.batch_id ? <Check className="size-3.5 text-fin-gain" /> : <Copy className="size-3.5" />}
+                  </button>
                 </span>
               </span>
               <span

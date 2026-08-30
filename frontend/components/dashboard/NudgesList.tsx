@@ -23,6 +23,46 @@ export function NudgesList({
   const [loading, setLoading] = useState(false);
   const [errorMap, setErrorMap] = useState<Record<string, string>>({});
   const [sendingMap, setSendingMap] = useState<Record<string, boolean>>({});
+  const [sendingAll, setSendingAll] = useState(false);
+
+  const markCandidateSent = (transactionId: string) => {
+    setCandidates((prev) =>
+      prev.map((item) =>
+        item.transaction_id === transactionId ? { ...item, send_status: "sent" } : item,
+      ),
+    );
+  };
+
+  const handleSendAll = async () => {
+    if (!batchId || sendingAll) return;
+
+    setSendingAll(true);
+
+    for (const candidate of candidates) {
+      if (candidate.send_status !== "not_sent") continue;
+
+      try {
+        const result = await sendNudge(candidate.transaction_id);
+        if (result.success) {
+          markCandidateSent(candidate.transaction_id);
+        } else {
+          setErrorMap((prev) => ({
+            ...prev,
+            [candidate.transaction_id]: result.error ?? "Failed to send",
+          }));
+        }
+      } catch {
+        setErrorMap((prev) => ({
+          ...prev,
+          [candidate.transaction_id]: "Failed to send",
+        }));
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
+
+    setSendingAll(false);
+  };
 
   useEffect(() => {
     if (!batchId) {
@@ -93,7 +133,17 @@ export function NudgesList({
   return (
     <SectionPanel className="!p-0 overflow-hidden">
       <div className="p-5 lg:p-6 border-b border-border/50">
-        <SectionHeader title="Nudges" subtitle="Abandoned-checkout cases with a recovery message ready to send" />
+        <SectionHeader title="Nudges" subtitle="Abandoned-checkout cases with a recovery message ready to send">
+          <button
+            type="button"
+            onClick={handleSendAll}
+            disabled={sendingAll || candidates.every((candidate) => candidate.send_status === "sent")}
+            className="px-4 py-2 rounded-lg text-sm font-semibold bg-accent-blue text-white hover:bg-accent-blue/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {sendingAll && <Loader2 className="size-4 animate-spin" />}
+            Send All
+          </button>
+        </SectionHeader>
       </div>
 
       {loading ? (
@@ -161,13 +211,7 @@ export function NudgesList({
                             sendNudge(candidate.transaction_id)
                               .then((result) => {
                                 if (result.success) {
-                                  setCandidates((prev) =>
-                                    prev.map((item) =>
-                                      item.transaction_id === candidate.transaction_id
-                                        ? { ...item, send_status: "sent" }
-                                        : item,
-                                    ),
-                                  );
+                                  markCandidateSent(candidate.transaction_id);
                                   return;
                                 }
                                 setErrorMap((prev) => ({
@@ -195,7 +239,7 @@ export function NudgesList({
                                   : "bg-primary/10 text-primary hover:bg-primary/15"
                           }`}
                         >
-                          {isSending ? "Sending…" : rowError ? `Failed — retry` : isSent ? "Sent" : "Send"}
+                          {isSending ? "Sending…" : rowError ? `Failed — retry` : isSent ? "Sent" : "Send Mail"}
                         </button>
                       </div>
                     </div>
