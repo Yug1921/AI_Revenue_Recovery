@@ -31,8 +31,10 @@ export function RecoveryTrendChart({
           <AreaChart
             data={data}
             margin={{ top: 5, right: 5, bottom: 0, left: 0 }}
-            onClick={(state: any) => {
-              const point = state?.activePayload?.[0]?.payload;
+            onClick={(state) => {
+              const chartState = state as { activePayload?: Array<{ payload?: { transaction_id?: string } }> } | undefined;
+              console.log("[CHART CLICK DEBUG]", chartState);
+              const point = chartState?.activePayload?.[0]?.payload;
               if (point?.transaction_id) onPointClick(point.transaction_id);
             }}
           >
