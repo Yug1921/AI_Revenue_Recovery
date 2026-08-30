@@ -1,4 +1,4 @@
-import { BatchListItem, BatchSummary, Case, AuditTrail } from "./types";
+import { BatchListItem, BatchSummary, Case, AuditTrail, NudgeCandidate } from "./types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -34,4 +34,12 @@ export function getBatchCases(batchId: string): Promise<Case[]> {
 
 export function getCaseAuditTrail(transactionId: string): Promise<AuditTrail> {
   return request(`/api/case/${transactionId}/audit-trail`);
+}
+
+export function listNudges(batchId: string): Promise<NudgeCandidate[]> {
+  return request(`/api/nudges?batch_id=${batchId}`);
+}
+
+export function sendNudge(transactionId: string): Promise<{ success: boolean; demo_email: string; error: string | null }> {
+  return request(`/api/nudge/${transactionId}/send`, { method: "POST" });
 }

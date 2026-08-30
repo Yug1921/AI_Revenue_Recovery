@@ -47,3 +47,12 @@ export type AuditTrail = {
   decision: { action_type: string; bounds_applied: Record<string, unknown>; reasoning: string } | null;
   actions: AuditAction[];
 };
+
+export type NudgeCandidate = {
+  transaction_id: string;
+  customer_name: string;
+  amount: number;
+  demo_email: string;
+  message_preview: string;
+  send_status: "sent" | "not_sent";
+};

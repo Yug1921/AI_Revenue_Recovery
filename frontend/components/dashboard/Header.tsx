@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Activity, LayoutGrid, ListChecks, ChevronRight, Bell, Search, Settings } from "lucide-react";
+import { Activity, LayoutGrid, ListChecks, ChevronRight, Bell, Search, Settings, Send } from "lucide-react";
 
 const NAV_ITEMS = [
   { id: "overview", label: "Overview", icon: LayoutGrid },
   { id: "cases", label: "Cases", icon: ListChecks },
+  { id: "nudges", label: "Nudges", icon: Send },
   { id: "activity", label: "Activity", icon: Activity },
 ] as const;
 

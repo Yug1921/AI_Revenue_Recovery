@@ -8,13 +8,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app.config import supabase
+from app.config import DEFAULT_BATCH_SIZE, supabase
 from app.db_retry import with_retry
+from app.execution.engine import build_nudge_message
+from app.nudge.email_client import demo_email_for, send_nudge_email
 from app.pipeline import run_full_pipeline
 
 
 class BatchRunRequest(BaseModel):
-    count: int = 60
+    count: int = DEFAULT_BATCH_SIZE
 
 
 class BatchRunResponse(BaseModel):
@@ -113,7 +115,7 @@ def start_batch(
     request: Optional[BatchRunRequest] = None,
 ) -> BatchRunResponse:
     batch_id = str(uuid.uuid4())
-    count = request.count if request else 60
+    count = request.count if request and request.count is not None else DEFAULT_BATCH_SIZE
     with_retry(lambda: supabase.table("batch_runs").insert({
         "id": batch_id,
         "started_at": datetime.now(timezone.utc).isoformat(),
@@ -238,6 +240,122 @@ def get_batch_cases(batch_id: str) -> List[CaseResponse]:
             updated_at=_latest_timestamp(transaction, diagnosis, decision, action),
         ))
     return cases
+
+
+@app.get("/api/nudges")
+def get_nudges(batch_id: str):
+    transactions = with_retry(lambda: (
+        supabase.table("transactions")
+        .select("*")
+        .eq("batch_id", batch_id)
+        .execute()
+    )).data
+    if not transactions:
+        return []
+
+    transaction_ids = [transaction["id"] for transaction in transactions]
+
+    diagnoses = with_retry(lambda: (
+        supabase.table("diagnoses")
+        .select("*")
+        .in_("transaction_id", transaction_ids)
+        .order("created_at", desc=True)
+        .execute()
+    )).data
+    decisions = with_retry(lambda: (
+        supabase.table("decisions")
+        .select("*")
+        .in_("transaction_id", transaction_ids)
+        .order("created_at", desc=True)
+        .execute()
+    )).data
+    actions = with_retry(lambda: (
+        supabase.table("actions")
+        .select("*")
+        .in_("transaction_id", transaction_ids)
+        .execute()
+    )).data
+
+    diagnosis_by_transaction = {}
+    for diagnosis in diagnoses:
+        diagnosis_by_transaction.setdefault(diagnosis["transaction_id"], diagnosis)
+
+    decision_by_transaction = {}
+    for decision in decisions:
+        decision_by_transaction.setdefault(decision["transaction_id"], decision)
+
+    latest_action_by_transaction = {}
+    for action in actions:
+        transaction_id = action["transaction_id"]
+        latest = latest_action_by_transaction.get(transaction_id)
+        if latest is None or action["attempt_number"] > latest["attempt_number"]:
+            latest_action_by_transaction[transaction_id] = action
+
+    sent_by_transaction = {}
+    for action in actions:
+        if action.get("action_type") == "email_nudge_sent":
+            sent_by_transaction.setdefault(action["transaction_id"], action)
+
+    results = []
+    for transaction in transactions:
+        transaction_id = transaction["id"]
+        decision = decision_by_transaction.get(transaction_id)
+        if not decision or decision.get("action_type") != "nudge":
+            continue
+
+        demo_email = demo_email_for(transaction.get("customer_name"))
+        results.append({
+            "transaction_id": transaction_id,
+            "customer_name": transaction.get("customer_name"),
+            "amount": float(transaction.get("amount") or 0.0),
+            "demo_email": demo_email,
+            "message_preview": build_nudge_message(transaction),
+            "send_status": "sent" if transaction_id in sent_by_transaction else "not_sent",
+        })
+    return results
+
+
+@app.post("/api/nudge/{transaction_id}/send")
+def send_transaction_nudge(transaction_id: str):
+    transaction_result = with_retry(lambda: (
+        supabase.table("transactions")
+        .select("*")
+        .eq("id", transaction_id)
+        .execute()
+    ))
+    if not transaction_result.data:
+        raise HTTPException(status_code=404, detail=f"Transaction {transaction_id} was not found.")
+
+    transaction = transaction_result.data[0]
+    demo_email = demo_email_for(transaction.get("customer_name"))
+    message = build_nudge_message(transaction)
+    result = send_nudge_email(demo_email, transaction.get("customer_name"), message)
+
+    action_rows = with_retry(lambda: (
+        supabase.table("actions")
+        .select("*")
+        .eq("transaction_id", transaction_id)
+        .execute()
+    )).data
+    next_attempt = max(
+        [int(r.get("attempt_number", 0)) for r in action_rows if isinstance(r.get("attempt_number"), int)],
+        default=0,
+    ) + 1
+
+    with_retry(lambda: supabase.table("actions").insert({
+        "transaction_id": transaction_id,
+        "attempt_number": next_attempt,
+        "action_type": "email_nudge_sent",
+        "razorpay_call": None,
+        "result": "success" if result.get("success") else "failed",
+        "amount_recovered": 0,
+    }).execute())
+
+    return {
+        "success": bool(result.get("success")),
+        "demo_email": demo_email,
+        "error": result.get("error") if not result.get("success") else None,
+    }
 
 
 @app.get("/api/case/{transaction_id}/audit-trail", response_model=AuditTrailResponse)

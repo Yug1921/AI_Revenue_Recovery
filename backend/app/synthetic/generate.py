@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 
 from faker import Faker
 
-from app.config import supabase
+from app.config import DEFAULT_BATCH_SIZE, supabase
 from app.db_retry import with_retry
 
 fake = Faker("en_IN")
@@ -153,6 +153,11 @@ def run(count: int, batch_id: str | None = None) -> str:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed synthetic transaction data.")
-    parser.add_argument("--count", type=int, default=60, help="Number of records to generate (default: 60)")
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=DEFAULT_BATCH_SIZE,
+        help=f"Number of records to generate (default: {DEFAULT_BATCH_SIZE})",
+    )
     args = parser.parse_args()
     run(args.count)

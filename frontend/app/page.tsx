@@ -16,6 +16,7 @@ import { RootCauseDonut } from "@/components/dashboard/RootCauseDonut";
 import { CasesTable } from "@/components/dashboard/CasesTable";
 import { CaseModal, Origin } from "@/components/dashboard/CaseModal";
 import { ActivityList } from "@/components/dashboard/ActivityList";
+import { NudgesList } from "@/components/dashboard/NudgesList";
 import { runBatch, getBatchSummary, getBatchCases } from "@/lib/api";
 import { BatchSummary, Case } from "@/lib/types";
 
@@ -38,7 +39,7 @@ export default function DashboardPage() {
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
   const [selectedOrigin, setSelectedOrigin] = useState<Origin>(null);
   const failCount = useRef(0);
-  const [activeSection, setActiveSection] = useState<"overview" | "cases" | "activity">("overview");
+  const [activeSection, setActiveSection] = useState<"overview" | "cases" | "activity" | "nudges">("overview");
 
   const refresh = useCallback(async (batchId: string) => {
     try {
@@ -98,13 +99,15 @@ export default function DashboardPage() {
       <Header
         active={activeSection}
         onNavigate={(id) => {
-          setActiveSection(id as "overview" | "cases" | "activity");
+          setActiveSection(id as "overview" | "cases" | "activity" | "nudges");
           if (id === "cases") {
             requestAnimationFrame(() => {
               document.getElementById("cases-section")?.scrollIntoView({ behavior: "smooth" });
             });
           } else if (id === "overview") {
             window.scrollTo({ top: 0, behavior: "smooth" });
+          } else if (id === "activity") {
+            // keep the same non-scroll behavior already used for the activity section
           }
         }}
       />
@@ -115,7 +118,9 @@ export default function DashboardPage() {
             ? "Batch Cases"
             : activeSection === "activity"
               ? "Batch History"
-              : "Batch Overview"}
+              : activeSection === "nudges"
+                ? "Batch Nudges"
+                : "Batch Overview"}
         </h1>
         {/* Batch selector row */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -165,6 +170,15 @@ export default function DashboardPage() {
                 setActiveSection("overview");
                 window.scrollTo({ top: 0, behavior: "smooth" });
                 setBusy(false);
+              }}
+            />
+          ) : activeSection === "nudges" ? (
+            <NudgesList
+              batchId={activeBatchId}
+              batchStatus={summary?.status ?? null}
+              onSelectCase={(id, origin) => {
+                setSelectedCase(id);
+                setSelectedOrigin(origin);
               }}
             />
           ) : summary && (

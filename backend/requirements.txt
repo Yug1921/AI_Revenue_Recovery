@@ -4,3 +4,4 @@ faker==30.8.2
 fastapi==0.115.6
 uvicorn==0.32.1
 httpx==0.27.2
+resend==2.5.1

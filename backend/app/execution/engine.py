@@ -44,11 +44,17 @@ def _escalate(reason: str, attempt_number: int) -> dict:
     }
 
 
-def _nudge(transaction: dict, root_cause: str, attempt_number: int) -> dict:
-    message = (
-        f"Hi {transaction.get('customer_name', 'there')}, your payment of "
-        f"₹{transaction['amount']:.2f} needs attention — please retry to complete it."
+def build_nudge_message(transaction: dict) -> str:
+    amount = float(transaction.get("amount", 0.0) or 0.0)
+    customer_name = transaction.get("customer_name") or "there"
+    return (
+        f"Hi {customer_name}, your payment of "
+        f"₹{amount:.2f} needs attention — please retry to complete it."
     )
+
+
+def _nudge(transaction: dict, root_cause: str, attempt_number: int) -> dict:
+    message = build_nudge_message(transaction)
     success = _simulate_success(root_cause)
     return {
         "attempt_number": attempt_number,

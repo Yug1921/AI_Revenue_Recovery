@@ -4,7 +4,7 @@ import traceback
 import uuid
 from datetime import datetime, timezone
 
-from app.config import supabase
+from app.config import DEFAULT_BATCH_SIZE, supabase
 from app.db_retry import with_retry
 from app.decisions.run import run as run_decisions
 from app.diagnosis.run import run as run_diagnosis
@@ -13,7 +13,7 @@ from app.progress import _touch
 from app.synthetic.generate import run as run_generation
 
 
-def run_full_pipeline(count: int = 60, batch_id: str | None = None) -> str:
+def run_full_pipeline(count: int = DEFAULT_BATCH_SIZE, batch_id: str | None = None) -> str:
     print(f"[PIPELINE] run_full_pipeline STARTED for batch_id={batch_id}, count={count}", flush=True)
     should_create_batch = batch_id is None
     batch_id = batch_id or str(uuid.uuid4())
