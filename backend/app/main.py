@@ -63,6 +63,7 @@ class AuditTrailResponse(BaseModel):
     diagnosis: Optional[Dict[str, Any]]
     decision: Optional[Dict[str, Any]]
     actions: List[Dict[str, Any]]
+    nudge_message: Optional[str] = None
 
 
 app = FastAPI(title="Payment Recovery Agent")

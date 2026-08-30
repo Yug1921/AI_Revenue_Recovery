@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { motion, AnimatePresence } from "motion/react";
-import { X } from "lucide-react";
+import { Copy, X } from "lucide-react";
 import { RecoveryTrace, TraceStage } from "./RecoveryTrace";
 import { ResultBadge, SectionHeader, EASE_OUT } from "./primitives";
 import { getCaseAuditTrail } from "@/lib/api";
@@ -42,6 +42,7 @@ export function CaseModal({
     trail: AuditTrail | null;
     error: string | null;
   }>({ transactionId: null, trail: null, error: null });
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!transactionId) return;
@@ -135,6 +136,30 @@ export function CaseModal({
                             </div>
                           )}
                         </div>
+
+                        {trail.nudge_message && (
+                          <div className="rounded-xl surface-elevated p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                Recovery Message
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!trail.nudge_message) return;
+                                  navigator.clipboard.writeText(trail.nudge_message);
+                                  setCopied(true);
+                                  window.setTimeout(() => setCopied(false), 1500);
+                                }}
+                                className="text-[11px] font-medium text-accent-blue hover:text-accent-blue/80 transition-colors flex items-center gap-1"
+                              >
+                                <Copy className="size-3" />
+                                {copied ? "Copied!" : "Copy"}
+                              </button>
+                            </div>
+                            <p className="text-sm text-foreground leading-relaxed">{trail.nudge_message}</p>
+                          </div>
+                        )}
 
                         {trail.actions.length > 0 && (
                           <div>
