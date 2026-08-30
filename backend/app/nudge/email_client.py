@@ -27,8 +27,9 @@ def send_nudge_email(demo_recipient_email: str, customer_name: str, message: str
     """Send the message to the developer's verified address while labeling it as demo-only."""
     api_key = os.getenv("RESEND_API_KEY")
     to_email = os.getenv("RESEND_TO_EMAIL")
-    print(f"[NUDGE DEBUG] to_email={to_email!r} from_email={from_email!r}", flush=True)
     from_email = os.getenv("RESEND_FROM_EMAIL")
+    
+    print(f"[NUDGE DEBUG] to_email={to_email!r} from_email={from_email!r}", flush=True)
 
     if resend is not None:
         resend.api_key = api_key or None
