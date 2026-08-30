@@ -13,8 +13,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-export function runBatch(count = 60): Promise<{ batch_id: string; status: string }> {
-  return request("/api/batch/run", { method: "POST", body: JSON.stringify({ count }) });
+export function runBatch(count?: number): Promise<{ batch_id: string; status: string }> {
+  return request("/api/batch/run", {
+    method: "POST",
+    body: JSON.stringify(count !== undefined ? { count } : {}),
+  });
 }
 
 export function listBatches(): Promise<BatchListItem[]> {

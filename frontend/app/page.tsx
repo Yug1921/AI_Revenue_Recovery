@@ -82,7 +82,7 @@ export default function DashboardPage() {
     setBusy(true);
     setError(null);
     try {
-      const { batch_id } = await runBatch(60);
+      const { batch_id } = await runBatch();
       setActiveBatchId(batch_id);
       setBatchIdInput(batch_id);
       await refresh(batch_id);
