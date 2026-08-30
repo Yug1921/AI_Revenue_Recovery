@@ -74,9 +74,20 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (activeSection === "cases") {
-      requestAnimationFrame(() => {
-        document.getElementById("cases-section")?.scrollIntoView({ behavior: "smooth" });
-      });
+      let attempts = 0;
+      const maxAttempts = 30; // ~30 * 50ms = 1.5s ceiling, generous for any animation delay
+      const tryScroll = () => {
+        const el = document.getElementById("cases-section");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+        attempts += 1;
+        if (attempts < maxAttempts) {
+          setTimeout(tryScroll, 50);
+        }
+      };
+      tryScroll();
     } else if (activeSection === "overview") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }

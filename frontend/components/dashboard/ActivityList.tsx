@@ -70,10 +70,17 @@ export function ActivityList({ onSelectBatch }: { onSelectBatch: (batchId: strin
       {!loading && !error && batches.length > 0 && (
         <div>
           {batches.map((batch) => (
-            <button
+            <div
               key={batch.batch_id}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => onSelectBatch(batch.batch_id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectBatch(batch.batch_id);
+                }
+              }}
               className="w-full grid grid-cols-[1fr_auto] md:grid-cols-[1.5fr_auto_auto_auto_auto] gap-3 items-center text-left p-4 border-b border-border/30 hover:bg-accent/20 transition-all duration-200 cursor-pointer last:border-b-0"
             >
               <span className="min-w-0">
@@ -116,7 +123,7 @@ export function ActivityList({ onSelectBatch }: { onSelectBatch: (batchId: strin
               <span className="hidden md:block text-right font-mono text-sm text-muted-foreground">
                 {batch.exceptions_count == null ? "—" : batch.exceptions_count}
               </span>
-            </button>
+            </div>
           ))}
         </div>
       )}
