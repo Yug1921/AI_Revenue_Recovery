@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "motion/react";
 import {
   SectionPanel,
@@ -26,10 +27,23 @@ function formatTime(iso: string) {
 export function CasesTable({
   cases,
   onSelect,
+  highlightedCaseId,
 }: {
   cases: Case[];
   onSelect: (id: string, origin: { x: number; y: number }) => void;
+  highlightedCaseId?: string | null;
 }) {
+  useEffect(() => {
+    if (!highlightedCaseId) return;
+
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`case-row-${highlightedCaseId}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [highlightedCaseId]);
+
   return (
     <SectionPanel className="!p-0 overflow-hidden">
       <div className="p-5 lg:p-6 border-b border-border/50">
@@ -42,6 +56,9 @@ export function CasesTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/50">
+              <th className="text-left p-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.08em]">
+                #
+              </th>
               <th className="text-left p-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.08em]">
                 Type
               </th>
@@ -66,6 +83,7 @@ export function CasesTable({
             {cases.map((c, i) => (
               <motion.tr
                 key={c.transaction_id}
+                id={`case-row-${c.transaction_id}`}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: Math.min(i * 0.02, 0.6) }}
@@ -76,8 +94,11 @@ export function CasesTable({
                     y: rect.top + rect.height / 2,
                   });
                 }}
-                className="border-b border-border/30 hover:bg-accent/20 transition-all duration-200 cursor-pointer"
+                className={`border-b border-border/30 hover:bg-accent/20 transition-all duration-200 cursor-pointer ${
+                  c.transaction_id === highlightedCaseId ? "bg-accent-blue/10" : ""
+                }`}
               >
+                <td className="p-4 text-xs text-muted-foreground">{i + 1}</td>
                 <td className="p-4 text-xs text-muted-foreground capitalize">
                   {c.type.replace(/_/g, " ")}
                 </td>

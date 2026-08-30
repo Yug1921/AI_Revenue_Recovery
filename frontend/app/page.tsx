@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [busy, setBusy] = useState(false);
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
   const [selectedOrigin, setSelectedOrigin] = useState<Origin>(null);
+  const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(null);
   const failCount = useRef(0);
   const [activeSection, setActiveSection] = useState<"overview" | "cases" | "activity" | "nudges">("overview");
 
@@ -231,8 +232,9 @@ export default function DashboardPage() {
                 <RecoveryTrendChart
                   cases={cases}
                   onPointClick={(transactionId) => {
-                    setSelectedCase(transactionId);
-                    setSelectedOrigin({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+                    setActiveSection("cases");
+                    setHighlightedCaseId(transactionId);
+                    setTimeout(() => setHighlightedCaseId(null), 3000);
                   }}
                 />
                 <RootCauseDonut cases={cases} />
@@ -245,6 +247,7 @@ export default function DashboardPage() {
                     setSelectedCase(id);
                     setSelectedOrigin(origin);
                   }}
+                  highlightedCaseId={highlightedCaseId}
                 />
               </div>
             </motion.div>
