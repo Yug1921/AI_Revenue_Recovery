@@ -274,6 +274,6 @@ Vercel's dashboard requires a redeploy to take effect, not just a save.
 - No API authentication — acceptable for a public demo over synthetic data, not for real
   merchant financial data.
 - Hinglish nudge generation (an original differentiator idea) was not built — nudges are
-  English-only for now. The architecture (a single `build_nudge_message()` function) would make
+  English-only for now. The architecture (a single `generate_nudge_message()` function) would make
   adding language variants a contained change, not a redesign.
 - WhatsApp/SMS delivery channels are not built — only email, via Resend.

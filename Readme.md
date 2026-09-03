@@ -107,7 +107,7 @@ Full architecture and schema notes live in `PROJECT_CONTEXT.md`.
 
 ## Sample result
 
-A representative 60-transaction batch: **~58% recovery rate**, every unrecovered case logged
+A representative 30-transaction batch: **~58% recovery rate**, every unrecovered case logged
 as an honest, bounded escalation, not a silent failure.
 
 ## Scope

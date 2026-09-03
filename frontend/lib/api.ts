@@ -43,6 +43,18 @@ export function listNudges(batchId: string): Promise<NudgeCandidate[]> {
   return request(`/api/nudges?batch_id=${batchId}`);
 }
 
-export function sendNudge(transactionId: string): Promise<{ success: boolean; demo_email: string; error: string | null }> {
-  return request(`/api/nudge/${transactionId}/send`, { method: "POST" });
+export function generateNudgeMessage(
+  transactionId: string,
+): Promise<{ message: string; source: "ai" | "fallback" }> {
+  return request(`/api/nudge/${transactionId}/generate-message`);
+}
+
+export function sendNudge(
+  transactionId: string,
+  message?: string,
+): Promise<{ success: boolean; demo_email: string; error: string | null }> {
+  return request(`/api/nudge/${transactionId}/send`, {
+    method: "POST",
+    body: JSON.stringify(message !== undefined ? { message } : {}),
+  });
 }

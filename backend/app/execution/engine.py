@@ -14,6 +14,10 @@ they never fabricate a real_api result.
 
 import random
 
+import httpx
+
+from app.diagnosis.llm import MODELS, OPENROUTER_API_KEY, OPENROUTER_URL
+
 from app.execution.razorpay_client import create_payment_link, create_retry_order
 
 # Probability a given attempt recovers the money. Rough, documented estimates — not measured
@@ -44,7 +48,7 @@ def _escalate(reason: str, attempt_number: int) -> dict:
     }
 
 
-def build_nudge_message(transaction: dict) -> str:
+def build_nudge_message_fallback(transaction: dict) -> str:
     amount = float(transaction.get("amount", 0.0) or 0.0)
     customer_name = transaction.get("customer_name") or "there"
     return (
@@ -53,8 +57,59 @@ def build_nudge_message(transaction: dict) -> str:
     )
 
 
+NUDGE_SYSTEM_PROMPT = """Write a short, warm, conversational payment recovery message for an email body.
+Gently check in with the customer, with a tone like asking if they are still thinking it over.
+Mention the payment amount naturally and include one soft call to action.
+Use 2-3 sentences maximum, plain text only, and no markdown or corporate phrasing.
+Do not include a subject line, greeting, sign-off, or quotation marks around the message."""
+
+
+def generate_nudge_message(transaction: dict) -> dict:
+    """Return an AI-generated nudge, falling back to the static message on failure."""
+    if not OPENROUTER_API_KEY:
+        return {"message": build_nudge_message_fallback(transaction), "source": "fallback"}
+
+    amount = float(transaction.get("amount", 0.0) or 0.0)
+    customer_name = transaction.get("customer_name") or "there"
+    user_prompt = (
+        f"Customer name: {customer_name}\n"
+        f"Payment amount: ₹{amount:.2f}\n"
+        "Write the personalized recovery message now."
+    )
+    last_error = None
+
+    with httpx.Client(timeout=20.0) as client:
+        for model in MODELS:
+            try:
+                response = client.post(
+                    OPENROUTER_URL,
+                    headers={
+                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": NUDGE_SYSTEM_PROMPT},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        "temperature": 0.7,
+                    },
+                )
+                response.raise_for_status()
+                message = response.json()["choices"][0]["message"]["content"].strip()
+                if not message:
+                    raise ValueError("empty message returned")
+                return {"message": message, "source": "ai"}
+            except Exception as e:  # noqa: BLE001 — any failure here tries the next model
+                last_error = f"{model}: {e}"
+                continue
+
+    return {"message": build_nudge_message_fallback(transaction), "source": "fallback"}
+
+
 def _nudge(transaction: dict, root_cause: str, attempt_number: int) -> dict:
-    message = build_nudge_message(transaction)
+    message = generate_nudge_message(transaction)["message"]
     success = _simulate_success(root_cause)
     return {
         "attempt_number": attempt_number,

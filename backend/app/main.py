@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from app.config import DEFAULT_BATCH_SIZE, supabase
 from app.db_retry import with_retry
-from app.execution.engine import build_nudge_message
+from app.execution.engine import generate_nudge_message
 from app.nudge.email_client import demo_email_for, send_nudge_email
 from app.pipeline import run_full_pipeline
 
@@ -45,6 +45,10 @@ class BatchListItem(BaseModel):
     total_recovered: float | None
     recovery_rate: float | None
     exceptions_count: int | None
+
+
+class NudgeMessageRequest(BaseModel):
+    message: Optional[str] = None
 
 
 class CaseResponse(BaseModel):
@@ -310,14 +314,31 @@ def get_nudges(batch_id: str):
             "customer_name": transaction.get("customer_name"),
             "amount": float(transaction.get("amount") or 0.0),
             "demo_email": demo_email,
-            "message_preview": build_nudge_message(transaction),
+            "message_preview": generate_nudge_message(transaction)["message"],
             "send_status": "sent" if transaction_id in sent_by_transaction else "not_sent",
         })
     return results
 
 
+@app.get("/api/nudge/{transaction_id}/generate-message")
+def generate_transaction_nudge_message(transaction_id: str):
+    transaction_result = with_retry(lambda: (
+        supabase.table("transactions")
+        .select("*")
+        .eq("id", transaction_id)
+        .execute()
+    ))
+    if not transaction_result.data:
+        raise HTTPException(status_code=404, detail=f"Transaction {transaction_id} was not found.")
+
+    return generate_nudge_message(transaction_result.data[0])
+
+
 @app.post("/api/nudge/{transaction_id}/send")
-def send_transaction_nudge(transaction_id: str):
+def send_transaction_nudge(
+    transaction_id: str,
+    request: NudgeMessageRequest | None = None,
+):
     transaction_result = with_retry(lambda: (
         supabase.table("transactions")
         .select("*")
@@ -329,7 +350,11 @@ def send_transaction_nudge(transaction_id: str):
 
     transaction = transaction_result.data[0]
     demo_email = demo_email_for(transaction.get("customer_name"))
-    message = build_nudge_message(transaction)
+    message = (
+        request.message
+        if request is not None and request.message is not None
+        else generate_nudge_message(transaction)["message"]
+    )
     result = send_nudge_email(demo_email, transaction.get("customer_name"), message)
 
     action_rows = with_retry(lambda: (

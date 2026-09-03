@@ -47,7 +47,7 @@ export type AuditTrail = {
   diagnosis: { root_cause: string; confidence: number; reasoning: string } | null;
   decision: { action_type: string; bounds_applied: Record<string, unknown>; reasoning: string } | null;
   actions: AuditAction[];
-  nudge_message: string | null;
+  nudge_message?: string | null;
 };
 
 export type NudgeCandidate = {
