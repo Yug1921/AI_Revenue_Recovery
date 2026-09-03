@@ -76,20 +76,15 @@ customers instead of a sandboxed inbox.
 
 ## Screenshots
 
-**Overview dashboard**
-![Overview dashboard](docs/screenshots/overview.png)
+[Overview dashboard](docs/screenshots/overview.png)
 
-**Cases table**
-![Cases table](docs/screenshots/cases-table.png)
+[Cases table](docs/screenshots/cases-table.png)
 
-**Case Detail — Recovery Trace**
-![Case Detail](docs/screenshots/case-detail.png)
+[Case Detail](docs/screenshots/case-detail.png)
 
-**Nudges tab**
-![Nudges tab](docs/screenshots/nudges.png)
+[Nudges tab](docs/screenshots/nudges.png)
 
-**Activity — batch history**
-![Activity](docs/screenshots/activity.png)
+[Activity](docs/screenshots/activity.png)
 
 ## Running it locally
 
